@@ -17,6 +17,7 @@ import (
 	"github.com/jellydator/ttlcache/v3"
 	"go.minekube.com/gate/pkg/edition/java/internal/protoutil"
 	"go.minekube.com/gate/pkg/edition/java/lite/config"
+	"go.minekube.com/gate/pkg/edition/java/lite/voicechat"
 	"go.minekube.com/gate/pkg/edition/java/netmc"
 	"go.minekube.com/gate/pkg/edition/java/proto/codec"
 	"go.minekube.com/gate/pkg/edition/java/proto/packet"
@@ -45,6 +46,7 @@ func Forward(
 	handshake *packet.Handshake,
 	pc *proto.PacketContext,
 	strategyManager *StrategyManager,
+	voice *voicechat.Manager,
 ) {
 	defer func() { _ = client.Close() }()
 	observation, observed := connectiontelemetry.FromContext(client.Context())
@@ -88,6 +90,7 @@ func Forward(
 	// Track connection for all strategies (used by status API and least-connections strategy)
 	decrementConnection := strategyManager.TrackConnection(routeHost, backendAddr)
 	defer decrementConnection()
+	defer registerVoice(voice, route, dst.RemoteAddr(), src.RemoteAddr())()
 
 	log.Info("forwarding connection", "backendAddr", backendAddr)
 	if observed {
